@@ -1,3 +1,7 @@
 streamlit
 pandasai
 openpyxl
+openai
+groq
+anthropic
+seaborn
