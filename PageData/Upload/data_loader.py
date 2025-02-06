@@ -1,11 +1,6 @@
 import pandas as pd
 import sqlite3
 import streamlit as st
-
-from database import get_table_names
-from utils import sanitize_column_name
-
-
 def load_excel_data(uploaded_file, conn):
     """Loads data from an uploaded Excel file."""
     try:

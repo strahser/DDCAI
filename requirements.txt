@@ -4,4 +4,4 @@ openpyxl
 openai
 groq
 anthropic
-seaborn
+multipage-streamlit

@@ -3,10 +3,11 @@ from sqlite3 import Connection
 import pandas as pd
 import streamlit as st
 import io
-
+import uuid
+DB_PATH = "file::memory:?cache=shared"
 def initialize_database() -> Connection:
     """Initializes the in-memory SQLite database and creates tables."""
-    conn = sqlite3.connect("file::memory:?cache=shared", uri=True)
+    conn = sqlite3.connect(DB_PATH, uri=True)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -33,7 +34,8 @@ def initialize_database() -> Connection:
             code TEXT,
             name TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            is_view BOOLEAN DEFAULT FALSE
+            is_view BOOLEAN DEFAULT FALSE,
+            category TEXT  -- Added the category field
         )
     ''')
 
@@ -44,7 +46,8 @@ def create_view(query: str, conn: Connection, view_name: str = "temp_view") -> p
     """Creates a temporary view from a SQL query."""
     try:
         cursor = conn.cursor()
-        cursor.execute(f"CREATE VIEW IF NOT EXISTS \"{view_name}\" AS {query}")
+        _query = f"CREATE VIEW IF NOT EXISTS \"{view_name}\" AS {query}"
+        cursor.execute(_query)
         conn.commit()
         return pd.read_sql(f"SELECT * FROM \"{view_name}\"", conn)
     except Exception as e:
@@ -56,6 +59,17 @@ def execute_sql(query: str, conn: Connection) -> pd.DataFrame or str:
         return pd.read_sql(query, conn)
     except Exception as e:
         return str(e)
+
+def get_only_views_names(conn: Connection) -> list:
+    """Retrieves table and view names from the database."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE  type='view';")
+        tables = [row[0] for row in cursor.fetchall()]
+        return tables
+    except Exception as e:
+        st.error(f"Error retrieving view names: {e}")
+        return []
 
 def get_table_names(conn: Connection) -> list:
     """Retrieves table and view names from the database."""
@@ -88,9 +102,24 @@ def save_database(conn: Connection, filename: str = "chat_data.db"):
         st.error(f"Error saving database: {e}")
         return None
 
+def update_record(conn: sqlite3.Connection, table_name: str, record_id: str, dict): #data is now a param
+    """Updates a record in the specified table."""
+    try:
+        cursor = conn.cursor()
+        placeholders = ", ".join(f"\"{key}\" = ?" for key in dict)
+        update_sql = f"UPDATE \"{table_name}\" SET {placeholders} WHERE id = ?"
+        values = list(dict.values()) + [record_id]
+
+        cursor.execute(update_sql, values)
+        conn.commit()
+        st.success(f"Record with ID {record_id} in table {table_name} updated successfully.")
+    except Exception as e:
+        st.error(f"Error updating record: {e}")
+        conn.rollback()
+
 def insert_code_snippet(conn: Connection, code_type: str, code: str, name: str, is_view: bool = False):
     """Inserts a code snippet into the database."""
-    import uuid # this is only needed in this function, so you only want this to be imported as this function is called
+
     code_id = str(uuid.uuid4())
     try:
         cursor = conn.cursor()
@@ -100,16 +129,6 @@ def insert_code_snippet(conn: Connection, code_type: str, code: str, name: str, 
         st.success(f"{code_type.upper()} code saved successfully with ID: {code_id}")
     except Exception as e:
         st.error(f"Error saving {code_type} code: {e}")
-
-def delete_code_snippet(conn: Connection, code_id: str):
-    """Deletes a code snippet from the database."""
-    try:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM code_snippets WHERE id = ?", (code_id,))
-        conn.commit()
-        st.success(f"Code snippet with ID {code_id} deleted successfully.")
-    except Exception as e:
-        st.error(f"Error deleting code: {e}")
 
 def execute_sql_text(query: str, conn: Connection) -> str or None:
     """Executes a SQL query and returns a single text result."""
@@ -123,3 +142,19 @@ def execute_sql_text(query: str, conn: Connection) -> str or None:
             return None  # Return None if no result is found
     except Exception as e:
         return str(e)
+
+def delete_view_by_name(conn: Connection, view_name: str):
+    """Deletes a view from the database."""
+    try:
+        cursor = conn.cursor()
+        # Drop the view
+        cursor.execute(f"DROP VIEW IF EXISTS \"{view_name}\"")  # Escape the view name
+        # Delete the code snippet from the table
+        cursor.execute("DELETE FROM code_snippets WHERE name = ? AND is_view = 1", (view_name,))
+        conn.commit()
+        st.success(f"View '{view_name}' deleted successfully.")
+
+    except Exception as e:
+        st.error(f"Error deleting view: {e}")
+        conn.rollback()
+

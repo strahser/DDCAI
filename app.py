@@ -1,8 +1,13 @@
 import streamlit as st
 
-from database import initialize_database
-from tabs import data_upload_tab, chat_with_ai_tab, data_analysis_tab, CodeExecutionTab
+from PageData.AiChat.chat_page import chat_with_ai_tab
+from PageData.CodeExecution.code_execution_page import CodeExecutionTab
+from PageData.DB.database import initialize_database
+import multipage_streamlit as mt
 
+from PageData.DataAnalysis.data_analysis_page import data_analysis_tab
+from PageData.Upload.data_upload_page import data_upload_tab
+from PageData.admin import admin_panel
 
 # Initialize database connection globally for session persistence
 conn = initialize_database()
@@ -18,24 +23,38 @@ def initialize_session_state():
 
 # Main Streamlit App
 def main():
+    st.set_page_config(page_title="Admin Panel", layout="wide")
     # Use the global database connection
     global conn
+    def data_upload_page():
+        data_upload_tab(conn)
+
+    def chat_with_ai_page():
+        chat_with_ai_tab(conn)
+
+    def code_execution_page():
+        code_execution_tab = CodeExecutionTab(conn)
+        code_execution_tab.display()
+
+    def data_analysis_page():
+        data_analysis_tab(conn)
+
+    def admin_panel_page():
+        admin_panel(conn)
 
     # Initialize session state variables
     initialize_session_state()
+    app = mt.MultiPage()
+    app.add("Upload ", data_upload_page)
+    if st.session_state.excel_df is not None:
+        app.add("Chat with AI 📊", chat_with_ai_page)
+        app.add("Code Execution 🎛️", code_execution_page)
+        app.add("Data Analysis 🎛️", data_analysis_page)
+        app.add("Admin Panel 🎛️", admin_panel_page)
 
-    # Streamlit UI - Tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["Data Upload", "Chat with AI", "Data Analysis", "Code Execution"])
 
-    with tab1:
-        data_upload_tab(conn)
-    with tab2:
-        chat_with_ai_tab(conn)
-    with tab3:
-        data_analysis_tab(conn)
-    with tab4:
-        code_execution_tab = CodeExecutionTab(conn)
-        code_execution_tab.display()
+    app.run_radio()
+
 
 if __name__ == "__main__":
     main()
