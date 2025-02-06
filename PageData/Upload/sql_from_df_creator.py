@@ -1,36 +1,7 @@
 import pandas as pd
 import sqlite3
 import streamlit as st
-def load_excel_data(uploaded_file, conn):
-    """Loads data from an uploaded Excel file."""
-    try:
-        df = pd.read_excel(uploaded_file)
-        # Find duplicate column names
-        seen_cols = set()
-        duplicate_cols = []
-        original_cols = df.columns.tolist()  # make it list for the purposes of this scope
-        for col in original_cols:
-            if col in seen_cols:
-                duplicate_cols.append(col)
-            else:
-                seen_cols.add(col)
-        # Handle duplicate column names
-        if duplicate_cols:
-            st.warning("The Excel file contains duplicate column names. Please fix these in the Excel file.")
-            st.write("Duplicate columns:", duplicate_cols)
-            return None
-        #
-        # new_columns = []
-        # for original_col in original_cols:
-        #     sanitized_col = sanitize_column_name(original_col)
-        #     new_columns.append(sanitized_col)
-        # df.columns = new_columns
 
-        st.success("Excel file loaded successfully!")
-        return df
-    except Exception as e:
-        st.error(f"Error loading Excel file: {e}")
-        return None
 
 def create_sql_table(df: pd.DataFrame, conn: sqlite3.Connection, table_name: str = "_df") -> bool:
     """Creates an SQL table from a Pandas DataFrame, attempting different methods."""

@@ -3,23 +3,24 @@ import streamlit as st
 from PageData.AiChat.chat_logic import process_chat_prompt
 from PageData.AiChat.llm import initialize_llm
 from PageData.DB.database import execute_sql
+from multipage_streamlit import State
 
-
-def initialize_chat_interface(conn):
+def initialize_chat_interface():
     """Initializes chat components."""
     llm = configure_llm_sidebar()
     display_chat_history()
 
     if prompt := st.chat_input("Your question", key="chat_input"):
-        handle_user_prompt(prompt, llm, conn)
+        handle_user_prompt(prompt, llm)
 
 
 def configure_llm_sidebar():
     """Configures LLM settings in sidebar."""
+    state = State(__name__)
     llm_choice = st.sidebar.radio("Choose LLM", ["Cloud","Local"])
     if llm_choice == "Cloud":
         cloud_model = st.sidebar.selectbox("Select Cloud Model", ["OpenAI", "Groq", "Anthropic"])
-        api_key = st.sidebar.text_input(f"{cloud_model} API Key", type="password")
+        api_key = st.sidebar.text_input(f"{cloud_model} API Key", type="password",key=state("api_key"))
         return initialize_llm(llm_choice, api_key, cloud_model)
     return initialize_llm(llm_choice)
 
@@ -30,7 +31,7 @@ def display_chat_history():
             st.markdown(msg["content"])
 
 
-def handle_user_prompt(prompt, llm, conn):
+def handle_user_prompt(prompt, llm):
     """Processes user prompt and generates response."""
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -51,7 +52,7 @@ def display_chat_history_sidebar(conn):
         st.sidebar.dataframe(history)
 
 
-def chat_with_ai_tab(conn):
+def chat_with_ai_tab():
     """Handles the Chat with AI tab."""
     st.title("AI Data Analyst Chat")
-    initialize_chat_interface(conn)
+    initialize_chat_interface()

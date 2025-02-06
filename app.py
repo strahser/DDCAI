@@ -1,6 +1,6 @@
 import streamlit as st
 
-from PageData.AiChat.chat_page import chat_with_ai_tab
+from PageData.AiChat import chat_page
 from PageData.CodeExecution.code_execution_page import CodeExecutionTab
 from PageData.DB.database import initialize_database
 import multipage_streamlit as mt
@@ -21,16 +21,14 @@ def initialize_session_state():
     if "sql_tables" not in st.session_state:
         st.session_state["sql_tables"] = []
 
+
 # Main Streamlit App
 def main():
-    st.set_page_config(page_title="Admin Panel", layout="wide")
+    st.set_page_config(page_title="DDCAI", layout="wide")
     # Use the global database connection
     global conn
     def data_upload_page():
         data_upload_tab(conn)
-
-    def chat_with_ai_page():
-        chat_with_ai_tab(conn)
 
     def code_execution_page():
         code_execution_tab = CodeExecutionTab(conn)
@@ -45,14 +43,12 @@ def main():
     # Initialize session state variables
     initialize_session_state()
     app = mt.MultiPage()
-    app.add("Upload ", data_upload_page)
+    app.add("Upload 📁", data_upload_page)
     if st.session_state.excel_df is not None:
-        app.add("Chat with AI 📊", chat_with_ai_page)
-        app.add("Code Execution 🎛️", code_execution_page)
-        app.add("Data Analysis 🎛️", data_analysis_page)
+        app.add("Chat with AI 🤖", chat_page.chat_with_ai_tab)
+        app.add("Code Execution 💻", code_execution_page)
+        app.add("Data Analysis 📊", data_analysis_page)
         app.add("Admin Panel 🎛️", admin_panel_page)
-
-
     app.run_radio()
 
 

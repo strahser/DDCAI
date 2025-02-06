@@ -1,10 +1,50 @@
+import io
+import os
 import sqlite3
 from sqlite3 import Connection
 import pandas as pd
 import streamlit as st
-import io
 import uuid
+import tempfile
 DB_PATH = "file::memory:?cache=shared"
+
+def save_database(conn):
+    """
+    Saves the in-memory SQLite database to a byte stream using a temporary file.
+
+    Args:
+        conn: The SQLite connection object to the in-memory database.
+
+    Returns:
+        bytes: The database as a byte stream, or None if an error occurred.
+    """
+    try:
+        # Create a temporary file
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp_file:
+            temp_filename = tmp_file.name
+
+        # Connect to the temporary file as a database
+        temp_conn = sqlite3.connect(temp_filename)
+
+        # Backup the in-memory database to the temporary file
+        with temp_conn:
+            conn.backup(temp_conn)
+
+        temp_conn.close() # Close temporary connection to get the data flushed to disk
+
+        # Read the temporary file into a byte stream
+        with open(temp_filename, "rb") as f:
+            db_bytes = f.read()
+
+        # Remove the temporary file
+        os.remove(temp_filename)
+
+        return db_bytes
+
+    except Exception as e:
+        st.error(f"Error creating database byte stream: {e}")
+        return None
+
 def initialize_database() -> Connection:
     """Initializes the in-memory SQLite database and creates tables."""
     conn = sqlite3.connect(DB_PATH, uri=True)
@@ -82,25 +122,7 @@ def get_table_names(conn: Connection) -> list:
         st.error(f"Error retrieving table names: {e}")
         return []
 
-def save_database(conn: Connection, filename: str = "chat_data.db"):
-    """Saves the in-memory database to a file."""
-    try:
-        buffer = io.BytesIO()
-        with sqlite3.connect(':memory:') as backup_conn:
-            cursor = backup_conn.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            tables = cursor.fetchall()
-            for table in tables:
-                table_name = table[0]
-                cursor.execute(f"CREATE TABLE {table_name} AS SELECT * FROM main.{table_name};")
-                backup_conn.commit()
-            conn.backup(backup_conn)
-        buffer.seek(0)
-        db_bytes = buffer.read()
-        return db_bytes
-    except Exception as e:
-        st.error(f"Error saving database: {e}")
-        return None
+
 
 def update_record(conn: sqlite3.Connection, table_name: str, record_id: str, dict): #data is now a param
     """Updates a record in the specified table."""
@@ -117,14 +139,14 @@ def update_record(conn: sqlite3.Connection, table_name: str, record_id: str, dic
         st.error(f"Error updating record: {e}")
         conn.rollback()
 
-def insert_code_snippet(conn: Connection, code_type: str, code: str, name: str, is_view: bool = False):
+def insert_code_snippet(conn: Connection, code_type: str, code: str, name: str, is_view: bool = False, category: str = None):
     """Inserts a code snippet into the database."""
 
     code_id = str(uuid.uuid4())
     try:
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO code_snippets (id, type, code, name, is_view) VALUES (?, ?, ?, ?, ?)",
-                       (code_id, code_type, code, name, is_view))
+        cursor.execute("INSERT INTO code_snippets (id, type, code, name, is_view, category) VALUES (?, ?, ?, ?, ?, ?)",
+                       (code_id, code_type, code, name, is_view, category))
         conn.commit()
         st.success(f"{code_type.upper()} code saved successfully with ID: {code_id}")
     except Exception as e:

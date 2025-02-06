@@ -5,67 +5,28 @@ import pandas as pd
 
 
 
-def create_dataframe_from_dict(data_dict):
-    """
-    Creates a Pandas DataFrame from a dictionary where keys are categories
-    and values are lists of column names.
-
-    Args:
-        data_dict: Dictionary with category names as keys and lists of columns as values.
-
-    Returns:
-        pandas DataFrame: A DataFrame with "Column Name" and "Category" columns.
-    """
-
-    data_rows = []
-    for category, columns in data_dict.items():
-        for column in columns:
-            data_rows.append({
-                "Column Name": column,
-                "Category": category
-            })
-    return pd.DataFrame(data_rows)
-
-def analyze_dataframe(df):
-    """
-    Analyzes a DataFrame and returns a DataFrame with information about each column.
-
-    Args:
-        df: pandas DataFrame.
-
-    Returns:
-        pandas DataFrame: DataFrame with column information.
-    """
-
-    analysis_data = []
-    for column in df.columns:
-        total_count = df[column].size
-        null_count = df[column].isnull().sum()
-        top_10_values = df[column].value_counts().nlargest(10).index.tolist()
-        top_10_values_str = str(top_10_values) # Convert the list to a string
-
-        analysis_data.append({
-            'Column Name': column,
-            'Total Value Count': total_count,
-            'Number of Missing Values': null_count,
-            'Top 10 Values': top_10_values_str
-        })
-
-    return pd.DataFrame(analysis_data)
 
 
 def load_excel_data(uploaded_file):
-    """Loads data from an uploaded Excel file.
-
-    Args:
-        uploaded_file: The uploaded file object.
-
-    Returns:
-        pandas DataFrame: The loaded DataFrame or None if an error occurs.
-    """
+    """Loads data from an uploaded Excel file."""
     try:
         df = pd.read_excel(uploaded_file)
-        st.success("Excel data successfully loaded!")
+        # Find duplicate column names
+        seen_cols = set()
+        duplicate_cols = []
+        original_cols = df.columns.tolist()  # make it list for the purposes of this scope
+        for col in original_cols:
+            if col in seen_cols:
+                duplicate_cols.append(col)
+            else:
+                seen_cols.add(col)
+        # Handle duplicate column names
+        if duplicate_cols:
+            st.warning("The Excel file contains duplicate column names. Please fix these in the Excel file.")
+            st.write("Duplicate columns:", duplicate_cols)
+            return None
+
+        st.success("Excel file loaded successfully!")
         return df
     except Exception as e:
         st.error(f"Error loading Excel file: {e}")
@@ -105,7 +66,7 @@ def convert_revit_data(path_conv, file_path):
         st.error(f"Error during Revit conversion: {e}")
         return None
 
-def upload_page():
+def upload_ddc():
     st.title("Data Upload")
     data_source = st.radio("Select Data Source", ["Excel File", "Revit Converter"])
     if data_source == "Excel File":
@@ -113,7 +74,7 @@ def upload_page():
         if uploaded_file is not None:
             df = load_excel_data(uploaded_file)
             if df is not None:
-                st.session_state.df = df
+                st.session_state["excel_df"] = df
 
     elif data_source == "Revit Converter":
         base_path_conv_path = r"e:\DDC"
@@ -126,7 +87,7 @@ def upload_page():
             if file_path and path_conv:
                 df = convert_revit_data(path_conv, file_path)
                 if df is not None:
-                    st.session_state.df = df
+                    st.session_state["excel_df"] = df
             else:
                 st.warning("Please enter DDC converter folder and Revit file path.")
 

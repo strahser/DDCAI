@@ -13,6 +13,7 @@ class CodeExecutionTab:
         self.conn = conn
         self.reset_state()
         self.output_placeholder = None  # Single shared placeholder
+        self.category = "Default" #Added default empty category
 
     def reset_state(self):
         """Resets all internal states to default."""
@@ -27,6 +28,7 @@ class CodeExecutionTab:
         self.sql_code_name = "Untitled SQL Script"
         self.python_code_name = "Untitled Python Script"
         self.view_name = "Untitled View"
+        self.category = "" # Added category value
 
     def _handle_sql_execute(self):
         if self.sql_code:
@@ -44,7 +46,7 @@ class CodeExecutionTab:
     def _handle_sql_save(self):
         if self.sql_code and self.sql_code_name:
             conn = sqlite3.connect("file::memory:?cache=shared", uri=True)
-            insert_code_snippet(conn, "sql", self.sql_code, self.sql_code_name)
+            insert_code_snippet(conn, "sql", self.sql_code, self.sql_code_name, category = self.category)
             self.output_placeholder.success("SQL script saved!") #Placeholder
             conn.close()
 
@@ -55,7 +57,7 @@ class CodeExecutionTab:
             if isinstance(result, str):
                 self.output_placeholder.error(f"View creation failed: {result}")
             else:
-                insert_code_snippet(conn, "sql", self.sql_code, self.view_name, is_view=True)
+                insert_code_snippet(conn, "sql", self.sql_code, self.view_name, is_view=True, category = self.category)
                 self.output_placeholder.success("View created successfully!")
             conn.close()
 
@@ -70,7 +72,7 @@ class CodeExecutionTab:
     def _handle_python_save(self):
         if self.python_code and self.python_code_name:
             conn = sqlite3.connect("file::memory:?cache=shared", uri=True)
-            insert_code_snippet(conn, "python", self.python_code, self.python_code_name)
+            insert_code_snippet(conn, "python", self.python_code, self.python_code_name, category = self.category)
             self.output_placeholder.success("Python script saved!")#Placeholder
             conn.close()
 
@@ -88,13 +90,14 @@ class CodeExecutionTab:
         with python_tab:
             self.display_python_form()
 
-        self.display_saved_scripts()
+        self.display_saved_scripts() #Add to display the data
 
     def display_sql_form(self):
         """Displays the SQL Code form with execute, save, and create view options."""
         self.sql_code = st.text_area("SQL Code", value=self.sql_code, height=200)
         self.sql_code_name = st.text_input("Script Name:", value=self.sql_code_name)
         self.view_name = st.text_input("View Name:", value=self.view_name)
+        self.category = st.text_input("Category", value=self.category, key="sql_category") # Adds a category to the SQL FORM. Added key
         col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("Execute SQL", key="sql_execute"):
@@ -110,6 +113,7 @@ class CodeExecutionTab:
         """Displays the Python Code form with execute and save options."""
         self.python_code = st.text_area("Python Code", value=self.python_code, height=200)
         self.python_code_name = st.text_input("Script Name:", value=self.python_code_name)
+        self.category = st.text_input("Category", value=self.category, key="python_category") # Adds a category to the Python FORM. Added key
 
         col1, col2 = st.columns(2)
         with col1:
@@ -125,14 +129,22 @@ class CodeExecutionTab:
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("Saved Scripts")
-            scripts = execute_sql("SELECT id, name, type, is_view FROM code_snippets", conn)
-            if scripts is None or scripts.empty:
+            scripts = execute_sql("SELECT id, name, type, is_view, category FROM code_snippets", conn)
+            if isinstance(scripts, pd.DataFrame) and not scripts.empty: #Added security
+                st.dataframe(scripts)
+            else:
                 st.info("No saved scripts available.")
-                return
-            st.dataframe(scripts)
 
         with col2:
             st.subheader("Available Views")
-            tables = set(get_table_names(conn))
-            views = tables - set(st.session_state.get("sql_tables", []))
-            st.write(list(views))
+            tables = get_table_names(conn)
+            if tables:
+                # Fetch view names from code_snippets table where is_view is True
+                views_df = execute_sql("SELECT name FROM code_snippets WHERE is_view = 1", conn)
+                if isinstance(views_df, pd.DataFrame) and not views_df.empty:
+                    views = views_df['name'].tolist()  # Extract list of view names
+                    st.write(list(views))
+                else:
+                    st.info("No views available.")
+            else:
+                st.info("No tables found in the database.")
