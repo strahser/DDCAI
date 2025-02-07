@@ -5,3 +5,4 @@ openai
 groq
 anthropic
 multipage-streamlit
+streamlit-ace
