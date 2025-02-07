@@ -6,7 +6,7 @@ import pandas as pd
 import sys
 from PageData.DB.database import create_view, execute_sql, insert_code_snippet, get_table_names, DB_PATH
 from PageData.utils import get_common_vars, execute_python_code
-
+from streamlit_ace import st_ace, KEYBINDINGS, LANGUAGES, THEMES
 
 class CodeExecutionTab:
     def __init__(self, conn):
@@ -94,7 +94,13 @@ class CodeExecutionTab:
 
     def display_sql_form(self):
         """Displays the SQL Code form with execute, save, and create view options."""
-        self.sql_code = st.text_area("SQL Code", value=self.sql_code, height=200)
+        self.sql_code = st_ace(
+            value=self.sql_code,
+            placeholder="Type Query",
+            language="sql",
+            theme=THEMES.index("xcode"),
+            key="sql_code"
+        )
         self.sql_code_name = st.text_input("Script Name:", value=self.sql_code_name)
         self.view_name = st.text_input("View Name:", value=self.view_name)
         self.category = st.text_input("Category", value=self.category, key="sql_category") # Adds a category to the SQL FORM. Added key
@@ -111,7 +117,14 @@ class CodeExecutionTab:
 
     def display_python_form(self):
         """Displays the Python Code form with execute and save options."""
-        self.python_code = st.text_area("Python Code", value=self.python_code, height=200)
+        self.python_code  = st_ace(
+            value=self.python_code,
+            placeholder="Type Query",
+            language="python",
+            theme=THEMES.index("xcode"),
+            key="python_code"
+        )
+
         self.python_code_name = st.text_input("Script Name:", value=self.python_code_name)
         self.category = st.text_input("Category", value=self.category, key="python_category") # Adds a category to the Python FORM. Added key
 

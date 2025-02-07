@@ -32,6 +32,7 @@ def get_common_vars():
         "st": st,
         "pd": pd,
         "df": st.session_state.get("excel_df"),
-        "plt": plt
+        "plt": plt,
+        "sns":sns
     }
 
