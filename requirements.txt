@@ -1,6 +1,7 @@
 matplotlib
 seaborn
 streamlit
+streamlit-ace
 openpyxl
 openai
 multipage-streamlit
