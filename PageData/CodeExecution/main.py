@@ -8,7 +8,6 @@ from PageData.DB.database import execute_sql
 
 class CodeExecutionTab:
     """Main class for managing code execution tabs."""
-
     def __init__(self, conn):
         """
         Initializes the CodeExecutionTab.
