@@ -1,7 +1,5 @@
 streamlit
-pandasai
 openpyxl
 openai
-groq
-anthropic
 multipage-streamlit
+pandas-gpt[openai]

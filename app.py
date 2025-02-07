@@ -20,6 +20,12 @@ def initialize_session_state():
         st.session_state["excel_df"] = None
     if "sql_tables" not in st.session_state:
         st.session_state["sql_tables"] = []
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+    if "pandas_gpt_obj" not in st.session_state:
+        st.session_state["pandas_gpt_obj"] = None
+    if "api_key" not in st.session_state:
+        st.session_state["api_key"] = None
 
 
 # Main Streamlit App

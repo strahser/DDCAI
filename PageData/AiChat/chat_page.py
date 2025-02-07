@@ -1,58 +1,65 @@
 import streamlit as st
-
-from PageData.AiChat.chat_logic import process_chat_prompt
-from PageData.AiChat.llm import initialize_llm
-from PageData.DB.database import execute_sql
-from multipage_streamlit import State
-
-def initialize_chat_interface():
-    """Initializes chat components."""
-    llm = configure_llm_sidebar()
-    display_chat_history()
-
-    if prompt := st.chat_input("Your question", key="chat_input"):
-        handle_user_prompt(prompt, llm)
+import pandas as pd
+import openai
+import pandas_gpt  # Import the library (it monkey-patches pandas)
 
 
-def configure_llm_sidebar():
-    """Configures LLM settings in sidebar."""
-    state = State(__name__)
-    llm_choice = st.sidebar.radio("Choose LLM", ["Cloud","Local"])
-    if llm_choice == "Cloud":
-        cloud_model = st.sidebar.selectbox("Select Cloud Model", ["OpenAI", "Groq", "Anthropic"])
-        api_key = st.sidebar.text_input(f"{cloud_model} API Key", type="password",key=state("api_key"))
-        return initialize_llm(llm_choice, api_key, cloud_model)
-    return initialize_llm(llm_choice)
+def initialize_session_state():
+    """Initializes session state variables."""
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+
 
 def display_chat_history():
-    """Displays chat message history."""
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+    """Displays the chat history."""
+    for role, content in st.session_state["chat_history"]:
+        with st.chat_message(role):
+            st.markdown(content)
 
 
-def handle_user_prompt(prompt, llm):
-    """Processes user prompt and generates response."""
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+def process_user_input(user_prompt, df):
+    """Processes user input using pandas_gpt and updates the chat history."""
+    if df is None:
+        st.warning("Please upload an Excel file first.")
+        return
 
-    with st.spinner("Analyzing..."):
-        response = process_chat_prompt(prompt, st.session_state.get("excel_df"), llm)
+    if not openai.api_key:
+        st.error("Please provide an OpenAI API key.")
+        return
 
-    with st.chat_message("assistant"):
-        st.markdown(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+    try:
+        response = df.ask(user_prompt)  # Use .ask() on the DataFrame
+        st.session_state["chat_history"].append(("user", user_prompt))
+        st.session_state["chat_history"].append(("assistant", response))
 
-
-def display_chat_history_sidebar(conn):
-    """Displays chat history in sidebar."""
-    if st.sidebar.checkbox("Show History"):
-        history = execute_sql("SELECT question, answer, timestamp FROM chat_history", conn)
-        st.sidebar.dataframe(history)
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        st.session_state["chat_history"].append(("user", user_prompt))
+        st.session_state["chat_history"].append(("assistant", f"Error: {e}"))
 
 
 def chat_with_ai_tab():
-    """Handles the Chat with AI tab."""
-    st.title("AI Data Analyst Chat")
-    initialize_chat_interface()
+    st.title("PandasGPT Chat with DataFrame")
+
+    # 0. Init
+    initialize_session_state()
+
+    # 1. API Key Input (Sensitive Information - Do NOT Store Directly in Code)
+    api_key = st.text_input("Enter your OpenAI API Key:", type="password")
+    if api_key:
+        openai.api_key = api_key
+
+    # 2. Load data frame if it exists in session_state
+    if "excel_df" in st.session_state and st.session_state["excel_df"] is not None:
+        df = st.session_state["excel_df"]
+    else:
+        df = None #df should default to None in order to display a message
+        st.warning("Please upload a DataFrame using the file uploader in the main app.")
+
+    # 3. Display Chat History
+    display_chat_history()
+
+    # 4. Chat Input and Response
+    if df is not None and (prompt := st.chat_input("Ask questions about your DataFrame:")):#Skip unless a df is loaded
+        process_user_input(prompt, df)
+        st.rerun()
