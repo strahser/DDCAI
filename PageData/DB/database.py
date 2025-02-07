@@ -45,10 +45,12 @@ def save_database(conn):
         st.error(f"Error creating database byte stream: {e}")
         return None
 
-def initialize_database() -> Connection:
+def initialize_database(conn) -> Connection:
     """Initializes the in-memory SQLite database and creates tables."""
-    conn = sqlite3.connect(DB_PATH, uri=True)
+
     cursor = conn.cursor()
+
+
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS api_keys (
@@ -76,8 +78,18 @@ def initialize_database() -> Connection:
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             is_view BOOLEAN DEFAULT FALSE,
             category TEXT  -- Added the category field
-        )
+        )        
     ''')
+
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_settings (
+            user_id TEXT,
+            setting_name TEXT,
+            setting_value TEXT,
+            PRIMARY KEY (user_id, setting_name)
+        )
+    """)
 
     conn.commit()
     return conn
