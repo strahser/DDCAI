@@ -1,7 +1,6 @@
 import streamlit as st
-import pandas as pd
 import openai
-import pandas_gpt  # Import the library (it monkey-patches pandas)
+import pandas_gpt  # NOQA Import the library (it monkey-patches pandas)
 
 
 def initialize_session_state():

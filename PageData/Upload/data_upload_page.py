@@ -4,44 +4,8 @@ import pandas as pd
 import streamlit as st
 from PageData.Upload.sql_from_df_creator import   create_sql_table
 from PageData.DB.database import get_table_names, save_database, execute_sql
-from PageData.Upload.upload_ddc import  upload_ddc
+from PageData.Upload.upload_ddc import upload_ddc, visualise_loads
 
-
-# def handle_excel_upload(file, conn, create_table: bool,col1,col2):
-#     """Processes Excel file upload."""
-#
-#     with col1:
-#         st.subheader("Upload Settings")
-#         if file:
-#             st.session_state.uploaded_file_name = file.name
-#             df = load_excel_data(file)
-#             if df is not None:
-#                 st.session_state["excel_df"] = df
-#                 if create_table:
-#                     if 'excel_df' in st.session_state:  # Check if 'excel_df' exists in session_state
-#                         df = st.session_state["excel_df"]
-#                         if create_sql_table(df, conn):
-#                             st.session_state["sql_tables"] = get_table_names(conn)
-#                         else:
-#                             st.error("Failed to create SQL table.")
-#                     else:
-#                         st.error("No data to create table. Upload an Excel file.")
-#             else:
-#                 st.error("Failed to load data from Excel file. Ensure the file is in the correct format.")
-#         else:
-#             st.info("Upload an Excel file to preview and create a table.")  # Instruction for the user
-#
-#     with col2:
-#         st.subheader("Data Preview and SQL Tables")
-#
-#         if 'excel_df' in st.session_state:
-#             df = st.session_state["excel_df"]
-#             st.write("Preview of Uploaded Data:")
-#             st.dataframe(df.head())  # Show data head
-#
-#         if "sql_tables" in st.session_state:
-#             st.write("SQL Tables:")
-#             st.write(st.session_state["sql_tables"])  # Display SQL tables
 
 def save_database_button(conn):
     """Handles database download functionality using st.download_button.
@@ -105,8 +69,10 @@ def data_upload_tab(conn):
     df = st.session_state["excel_df"]
     excel_handle_condition = "excel_df" in  st.session_state and isinstance(df, pd.DataFrame)
     with col1:
-        st.header("Data Upload")
         upload_ddc()#genereted df in session from ddc excel file or ddc revit file
+
+    with col2:
+        st.subheader("Data Preview and SQL Tables")
         sqlite_file = st.file_uploader("Upload SQLite database", type=["db", "sqlite"])
         if sqlite_file:
             handle_sqlite_upload(sqlite_file, conn)
@@ -116,24 +82,16 @@ def data_upload_tab(conn):
             if st.button("Create SQL table from Excel data"):
                 create_sql_table(df, conn)
                 st.session_state["sql_tables"] = get_table_names(conn)
-
         sql_table = get_table_names(conn)
         if "_df" in sql_table:
-            _query ="select * from _df"
-            res = execute_sql(_query,conn)
-            if st.button("Update session from sql data") and isinstance(res,pd.DataFrame):
-                st.session_state["excel_df"] =res
+            _query = "select * from _df"
+            res = execute_sql(_query, conn)
+            if st.button("Update session from sql data") and isinstance(res, pd.DataFrame):
+                st.session_state["excel_df"] = res
                 st.info("update data in session from sql table")
         st.write("SQL Tables:")
         st.write(sql_table)  # Display SQL tables
-
-    with col2:
-        st.subheader("Data Preview and SQL Tables")
-        if excel_handle_condition:
-            st.write("Preview of Uploaded Data:")
-            st.dataframe(df.head())  # Show data head
-
-
-
+    with st.expander("## Preview"):
+        visualise_loads()
 
 

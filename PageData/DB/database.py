@@ -123,7 +123,6 @@ def get_table_names(conn: Connection) -> list:
         return []
 
 
-
 def update_record(conn: sqlite3.Connection, table_name: str, record_id: str, dict): #data is now a param
     """Updates a record in the specified table."""
     try:

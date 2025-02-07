@@ -4,8 +4,42 @@ import subprocess
 import pandas as pd
 
 
+def analyze_dataframe(df):
+    """
+    Analyzes a DataFrame and returns a DataFrame with information about each column.
 
+    Args:
+        df: pandas DataFrame.
 
+    Returns:
+        pandas DataFrame: DataFrame with column information.
+    """
+
+    analysis_data = []
+    for column in df.columns:
+        total_count = df[column].size
+        null_count = df[column].isnull().sum()
+        top_10_values = df[column].value_counts().nlargest(10).index.tolist()
+        top_10_values_str = str(top_10_values) # Convert the list to a string
+
+        analysis_data.append({
+            'Column Name': column,
+            'Total Value Count': total_count,
+            'Number of Missing Values': null_count,
+            'Top 10 Values': top_10_values_str
+        })
+
+    return pd.DataFrame(analysis_data)
+
+def visualise_loads():
+    if st.session_state["excel_df"] is not None:
+        st.subheader("Data Preview")
+        try:
+            st.write(st.session_state["excel_df"].head())
+        except:
+            st.write("")
+        st.subheader("Short description")
+        st.write(analyze_dataframe(st.session_state["excel_df"]))
 
 def load_excel_data(uploaded_file):
     """Loads data from an uploaded Excel file."""
@@ -67,7 +101,7 @@ def convert_revit_data(path_conv, file_path):
         return None
 
 def upload_ddc():
-    st.title("Data Upload")
+    st.subheader("Execl Data Upload")
     data_source = st.radio("Select Data Source", ["Excel File", "Revit Converter"])
     if data_source == "Excel File":
         uploaded_file = st.file_uploader("Upload an Excel file", type="xlsx")
@@ -90,4 +124,5 @@ def upload_ddc():
                     st.session_state["excel_df"] = df
             else:
                 st.warning("Please enter DDC converter folder and Revit file path.")
+
 

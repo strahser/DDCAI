@@ -2,8 +2,9 @@
 import streamlit as st
 import pandas as pd
 from PageData.DB.database import execute_sql
-from PageData.utils import get_common_vars, execute_python_code
 from multipage_streamlit import State
+
+from PageData.utils import execute_python_code, get_common_vars
 
 
 def data_analysis_tab(conn):
