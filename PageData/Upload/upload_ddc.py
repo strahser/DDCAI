@@ -20,7 +20,7 @@ def analyze_dataframe(df):
         total_count = df[column].size
         null_count = df[column].isnull().sum()
         top_10_values = df[column].value_counts().nlargest(10).index.tolist()
-        top_10_values_str = str(top_10_values) # Convert the list to a string
+        top_10_values_str = str(top_10_values)  # Convert the list to a string
 
         analysis_data.append({
             'Column Name': column,
@@ -31,6 +31,7 @@ def analyze_dataframe(df):
 
     return pd.DataFrame(analysis_data)
 
+
 def visualise_loads():
     if st.session_state["excel_df"] is not None:
         st.subheader("Data Preview")
@@ -40,6 +41,7 @@ def visualise_loads():
             st.write("")
         st.subheader("Short description")
         st.write(analyze_dataframe(st.session_state["excel_df"]))
+
 
 def load_excel_data(uploaded_file):
     """Loads data from an uploaded Excel file."""
@@ -65,6 +67,7 @@ def load_excel_data(uploaded_file):
     except Exception as e:
         st.error(f"Error loading Excel file: {e}")
         return None
+
 
 def convert_revit_data(path_conv, file_path):
     """Converts Revit data using the DDC converter.
@@ -94,15 +97,16 @@ def convert_revit_data(path_conv, file_path):
                 st.success("Revit data successfully loaded!")
                 return df
             else:
-                 st.error(f"Conversion failed. Error message: {stderr.decode('utf-8')}")
-                 return None
+                st.error(f"Conversion failed. Error message: {stderr.decode('utf-8')}")
+                return None
     except Exception as e:
         st.error(f"Error during Revit conversion: {e}")
         return None
 
+
 def upload_ddc():
     st.subheader("Execl Data Upload")
-    data_source = st.radio("Select Data Source", ["Excel File", "Revit Converter"])
+    data_source = st.radio("Select Data Source", ["Excel File", "Revit Converter"],horizontal=True)
     if data_source == "Excel File":
         uploaded_file = st.file_uploader("Upload an Excel file", type="xlsx")
         if uploaded_file is not None:
@@ -114,8 +118,10 @@ def upload_ddc():
         base_path_conv_path = r"e:\DDC"
         base_revit_file_path = r"e:\DDC\2022 rstadvancedsampleproject.rvt"
         st.subheader("Enter DDC Folder and Revit File Path")
-        path_conv = st.text_input("Enter path to DDC converter folder (where RvtExporter.exe is located)", base_path_conv_path)  # DDC folder path via text input
-        file_path = st.text_input("Enter path to Revit file (.rvt)", base_revit_file_path)# Revit file path by text input
+        path_conv = st.text_input("Enter path to DDC converter folder (where RvtExporter.exe is located)",
+                                  base_path_conv_path)  # DDC folder path via text input
+        file_path = st.text_input("Enter path to Revit file (.rvt)",
+                                  base_revit_file_path)  # Revit file path by text input
 
         if st.button("Convert Revit File"):
             if file_path and path_conv:
@@ -124,5 +130,3 @@ def upload_ddc():
                     st.session_state["excel_df"] = df
             else:
                 st.warning("Please enter DDC converter folder and Revit file path.")
-
-

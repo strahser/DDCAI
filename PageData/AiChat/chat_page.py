@@ -1,6 +1,10 @@
+import sqlite3
+
 import streamlit as st
 import openai
 import pandas_gpt  # NOQA Import the library (it monkey-patches pandas)
+
+from PageData.DB.database import DB_PATH
 
 
 def initialize_session_state():
@@ -47,7 +51,16 @@ def chat_with_ai_tab():
     api_key = st.text_input("Enter your OpenAI API Key:", type="password")
     if api_key:
         openai.api_key = api_key
-
+    if api_key and st.button("Save API Key"):
+        # Сохраняем ключ в базу данных
+        conn = sqlite3.connect(DB_PATH, uri=True)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR REPLACE INTO api_keys (id, service, key)
+            VALUES (?, ?, ?)
+        ''', ('openai_user_id', 'OpenAI', api_key))
+        conn.commit()  # Предполагается, что переменная connection доступна
+        st.success("API Key успешно сохранён!")
     # 2. Load data frame if it exists in session_state
     if "excel_df" in st.session_state and st.session_state["excel_df"] is not None:
         df = st.session_state["excel_df"]

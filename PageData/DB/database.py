@@ -1,4 +1,3 @@
-import io
 import os
 import sqlite3
 from sqlite3 import Connection
@@ -6,7 +5,25 @@ import pandas as pd
 import streamlit as st
 import uuid
 import tempfile
+
 DB_PATH = "file::memory:?cache=shared"
+
+
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class SqlConnector(object):
+    __metaclass__ = Singleton
+    memory_connection_path = "file::memory:?cache=shared"
+    conn_sql: sqlite3.Connection = sqlite3.connect(memory_connection_path, uri=True, check_same_thread=False)
+    conn_local_sql: sqlite3.Connection = sqlite3.connect("./export_excel.db", check_same_thread=False)
+
 
 def save_database(conn):
     """
@@ -30,7 +47,7 @@ def save_database(conn):
         with temp_conn:
             conn.backup(temp_conn)
 
-        temp_conn.close() # Close temporary connection to get the data flushed to disk
+        temp_conn.close()  # Close temporary connection to get the data flushed to disk
 
         # Read the temporary file into a byte stream
         with open(temp_filename, "rb") as f:
@@ -45,12 +62,11 @@ def save_database(conn):
         st.error(f"Error creating database byte stream: {e}")
         return None
 
+
 def initialize_database(conn) -> Connection:
     """Initializes the in-memory SQLite database and creates tables."""
 
     cursor = conn.cursor()
-
-
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS api_keys (
@@ -81,7 +97,6 @@ def initialize_database(conn) -> Connection:
         )        
     ''')
 
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_settings (
             user_id TEXT,
@@ -94,6 +109,7 @@ def initialize_database(conn) -> Connection:
     conn.commit()
     return conn
 
+
 def create_view(query: str, conn: Connection, view_name: str = "temp_view") -> pd.DataFrame or str:
     """Creates a temporary view from a SQL query."""
     try:
@@ -105,6 +121,7 @@ def create_view(query: str, conn: Connection, view_name: str = "temp_view") -> p
     except Exception as e:
         return str(e)
 
+
 def execute_sql(query: str, conn: Connection) -> pd.DataFrame or str:
     """Executes a SQL query and returns the result."""
     try:
@@ -112,16 +129,46 @@ def execute_sql(query: str, conn: Connection) -> pd.DataFrame or str:
     except Exception as e:
         return str(e)
 
-def get_only_views_names(conn: Connection) -> list:
+
+def get_all_views(conn: Connection) -> list:
     """Retrieves table and view names from the database."""
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE  type='view';")
-        tables = [row[0] for row in cursor.fetchall()]
-        return tables
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='view';")
+        views = cursor.fetchall()
+        return views
     except Exception as e:
-        st.error(f"Error retrieving view names: {e}")
+        st.error(f"Error retrieving views: {e}")
         return []
+
+
+def get_tables_and_views_info(conn: Connection) -> pd.DataFrame:
+    """Retrieves information about tables and views from the database and returns a Pandas DataFrame."""
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                name,
+                type,
+                sql
+            FROM
+                sqlite_master
+            WHERE
+                type IN ('table', 'view');
+            """
+        )
+        data = cursor.fetchall()
+        df = pd.DataFrame(data, columns=["Name", "Type", "SQL"])
+        df["Type"] = df["Type"].str.capitalize()
+
+        return df
+
+    except Exception as e:
+        st.error(f"Error retrieving table and view information: {e}")
+        return pd.DataFrame()  # Возвращаем пустой DataFrame в случае ошибки
+
 
 def get_table_names(conn: Connection) -> list:
     """Retrieves table and view names from the database."""
@@ -135,7 +182,7 @@ def get_table_names(conn: Connection) -> list:
         return []
 
 
-def update_record(conn: sqlite3.Connection, table_name: str, record_id: str, dict): #data is now a param
+def update_record(conn: sqlite3.Connection, table_name: str, record_id: str, dict):  # data is now a param
     """Updates a record in the specified table."""
     try:
         cursor = conn.cursor()
@@ -150,7 +197,9 @@ def update_record(conn: sqlite3.Connection, table_name: str, record_id: str, dic
         st.error(f"Error updating record: {e}")
         conn.rollback()
 
-def insert_code_snippet(conn: Connection, code_type: str, code: str, name: str, is_view: bool = False, category: str = None):
+
+def insert_code_snippet(conn: Connection, code_type: str, code: str, name: str, is_view: bool = False,
+                        category: str = None):
     """Inserts a code snippet into the database."""
 
     code_id = str(uuid.uuid4())
@@ -162,6 +211,7 @@ def insert_code_snippet(conn: Connection, code_type: str, code: str, name: str, 
         st.success(f"{code_type.upper()} code saved successfully with ID: {code_id}")
     except Exception as e:
         st.error(f"Error saving {code_type} code: {e}")
+
 
 def execute_sql_text(query: str, conn: Connection) -> str or None:
     """Executes a SQL query and returns a single text result."""
@@ -175,6 +225,7 @@ def execute_sql_text(query: str, conn: Connection) -> str or None:
             return None  # Return None if no result is found
     except Exception as e:
         return str(e)
+
 
 def delete_view_by_name(conn: Connection, view_name: str):
     """Deletes a view from the database."""
@@ -190,4 +241,3 @@ def delete_view_by_name(conn: Connection, view_name: str):
     except Exception as e:
         st.error(f"Error deleting view: {e}")
         conn.rollback()
-

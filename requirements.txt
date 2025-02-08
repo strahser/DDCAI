@@ -7,3 +7,4 @@ openai
 multipage-streamlit
 pandas-gpt[openai]
 streamlit-nested-layout
+openpyxl

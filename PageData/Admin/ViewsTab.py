@@ -2,8 +2,9 @@ import pandas as pd
 import streamlit as st
 
 from PageData.Admin.Utils.DbUtils import create_code_snippet
-from PageData.DB.database import delete_view_by_name
+from PageData.DB.database import delete_view_by_name,get_all_views
 from streamlit_ace import st_ace, THEMES
+
 
 class ViewsTab:
     """Tab for managing SQL views."""
@@ -26,14 +27,14 @@ class ViewsTab:
     def _display_create_form(self):
         """Form for creating a new view."""
         with st.form("create_view_form"):
-            view_name = st.text_input("View Name")
-            view_code =  st_ace(
-            value= "SELECT * FROM _df LIMIT 10;",
-            placeholder="Type SQL Query",
-            language="sql",
-            theme=THEMES.index("xcode"),
-            key="sql_code"
-        )
+            view_name = st.text_input("View Name", value="View 1")
+            view_code = st_ace(
+                value="SELECT * FROM _df LIMIT 10;",
+                placeholder="Type SQL Query",
+                language="sql",
+                theme=THEMES.index("xcode"),
+                key="sql_code"
+            )
             if st.form_submit_button("Create View"):
                 create_code_snippet(
                     self.conn,
@@ -48,11 +49,11 @@ class ViewsTab:
 
         # Mock database interaction (replace with your actual database interaction)
         # This is a simplified example; your actual code will query the database.
-        mock_views = [("view1",), ("view2",), ("view3",)] # Example  List of tuples.
+        views = get_all_views(self.conn)
         #
 
-        if mock_views:
-            df = pd.DataFrame(mock_views, columns=["View Name"])
+        if views:
+            df = pd.DataFrame(views, columns=["View Name"])
             df["Delete"] = False
 
             edited_df = st.data_editor(
