@@ -1,10 +1,12 @@
 import re
-import matplotlib.pyplot as plt #Added import
+import matplotlib.pyplot as plt  # Added import
 import pandas as pd
 import streamlit as st
 import seaborn as sns
 from io import StringIO
 import sys
+
+
 def sanitize_column_name(name: str) -> str:
     """Sanitizes a column name for use in SQLite."""
     name = re.sub(r"[^a-zA-Z0-9_ ]", "", name)
@@ -33,6 +35,5 @@ def get_common_vars():
         "pd": pd,
         "df": st.session_state.get("excel_df"),
         "plt": plt,
-        "sns":sns
+        "sns": sns
     }
-

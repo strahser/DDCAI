@@ -1,8 +1,23 @@
-# 1. Area Distribution
 import streamlit as st
 
 from matplotlib import pyplot as plt
+import seaborn as sns
 
+""""
+we have a pandas data frame with the following columns Category,Family Name,Area,
+make a function in python that will use st.write to display data. We are making snippets of the code to be displayed
+in streamlit.create 
+# 1. Area Distribution 
+# 2. Top Families by Element Count
+# 3. Comparison of Average Quantity by Family
+# 4. Scatter Plot: Area vs. Quantity 
+# 5. Box Plot of Area Distribution by Family
+use matplotlib as plt seaborn as sns
+crate tables and charts
+"""
+
+
+# 1. Area Distribution
 
 def area_distribution(df):
     """
@@ -148,3 +163,90 @@ with st.expander("Scatter Plot: Area vs. Quantity"):
 
 with st.expander("Box Plot of Area Distribution by Family"):
     family_area_distribution(df)
+
+
+def display_data_insights(df):
+    """
+    Displays data insights from the DataFrame using Streamlit.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame with columns 'Category', 'Family Name', 'Area', and 'Quantity'.
+    """
+
+    st.header("Data Insights")
+
+    # 1. Area Distribution
+    st.subheader("1. Area Distribution")
+    st.write("Distribution of areas.  This shows the range and common values of the Area variable.")
+
+    fig_area, ax_area = plt.subplots(figsize=(8, 5))  # Create figure and axes explicitly
+    sns.histplot(df['Area'], ax=ax_area, kde=True)  # Pass the axes to seaborn
+    ax_area.set_title("Area Distribution")
+    st.pyplot(fig_area)  # Use st.pyplot to display the figure
+
+    # 2. Top Families by Element Count
+    st.subheader("2. Top Families by Element Count")
+    st.write("Shows the top families based on the number of items they have in the dataset.")
+
+    family_counts = df['Family Name'].value_counts().sort_values(ascending=False)
+    top_families = family_counts.head(10)
+
+    fig_families, ax_families = plt.subplots(figsize=(10, 6))
+    top_families.plot(kind='bar', ax=ax_families)
+    ax_families.set_title("Top 10 Families by Element Count")
+    ax_families.set_xlabel("Family Name")
+    ax_families.set_ylabel("Count")
+    plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for readability
+    st.pyplot(fig_families)
+
+    family_counts_df = pd.DataFrame({'Family Name': family_counts.index, 'Count': family_counts.values})
+    st.write("Top Families Count Table:")
+    st.dataframe(family_counts_df.head(10), height=300)
+
+    # 3. Comparison of Average Quantity by Family
+    st.subheader("3. Comparison of Average Quantity by Family")
+    st.write(
+        "Shows the average quantity for each family.  This helps identify families with higher average quantities.")
+
+    avg_quantity_by_family = df.groupby('Family Name')['Quantity'].mean().sort_values(ascending=False)
+    top_avg_quantities = avg_quantity_by_family.head(10)
+
+    fig_quantity, ax_quantity = plt.subplots(figsize=(10, 6))
+    top_avg_quantities.plot(kind='bar', ax=ax_quantity)
+    ax_quantity.set_title("Top 10 Families by Average Quantity")
+    ax_quantity.set_xlabel("Family Name")
+    ax_quantity.set_ylabel("Average Quantity")
+    plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for readability
+    st.pyplot(fig_quantity)
+
+    avg_quantity_df = pd.DataFrame(
+        {'Family Name': avg_quantity_by_family.index, 'Average Quantity': avg_quantity_by_family.values})
+    st.write("Average Quantity by Family Table:")
+    st.dataframe(avg_quantity_df.head(10), height=300)
+
+    # 4. Scatter Plot: Area vs. Quantity
+    st.subheader("4. Scatter Plot: Area vs. Quantity")
+    st.write("Visualizes the relationship between area and quantity.  Helps identify any correlations or patterns.")
+
+    fig_scatter, ax_scatter = plt.subplots(figsize=(8, 6))
+    sns.scatterplot(x='Area', y='Quantity', data=df, ax=ax_scatter)
+    ax_scatter.set_title("Area vs. Quantity")
+    st.pyplot(fig_scatter)
+
+    # 5. Box Plot of Area Distribution by Family
+    st.subheader("5. Box Plot of Area Distribution by Family")
+    st.write(
+        "Compares the area distribution for different families.  Shows the spread and central tendency of the area "
+        "for each family.")
+
+    top_families_list = top_families.index.tolist()
+    filtered_df = df[df['Family Name'].isin(top_families_list)]
+
+    fig_boxplot, ax_boxplot = plt.subplots(figsize=(12, 6))
+    sns.boxplot(x='Family Name', y='Area', data=filtered_df, ax=ax_boxplot)
+    ax_boxplot.set_title("Area Distribution by Top 10 Family")
+    ax_boxplot.set_xlabel("Family Name")
+    ax_boxplot.set_ylabel("Area")
+    plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for readability
+    plt.tight_layout()
+    st.pyplot(fig_boxplot)
