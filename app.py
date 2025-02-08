@@ -4,6 +4,7 @@ import streamlit as st
 import multipage_streamlit as mt
 import streamlit_nested_layout  # NOQA need for work!
 
+from CssStyles import CssStyle
 from PageData.AiChat.chat_page import chat_with_ai_tab
 from PageData.CodeExecution.code_execution_page import CodeExecutionTab
 from PageData.DB.database import initialize_database, DB_PATH
@@ -102,7 +103,9 @@ def main():
         app.add("Admin Panel 🎛️", admin_panel_page_run)
         app.add("Chat with AI 🤖", chat_page_run)
     app.run_radio()
+    CssStyle.run()
 
 
 if __name__ == "__main__":
     main()
+
